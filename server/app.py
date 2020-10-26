@@ -28,6 +28,8 @@ from skimage.feature import hog
 from sklearn.svm import LinearSVC
 import matplotlib.image as mpimg
 from scipy.ndimage.measurements import label
+from cloudinary.uploader import upload
+from cloudinary.utils import cloudinary_url
 
 # Flask utils
 from flask import Flask, redirect, url_for, request, render_template
@@ -44,6 +46,7 @@ MONGO_URI = os.environ.get('MONGO_URI')
 
 # Define a flask app
 app = Flask(__name__)
+app.config.from_mapping( CLOUDINARY_URL=os.environ.get('CLOUDINARY_URL'))
 client = MongoClient(MONGO_URI)
 db = client['car-prediction']
 car_collection = db['cars']
@@ -221,7 +224,7 @@ def calculate_similarity(target_feature, input_feature):
 
 # Api route for prediction
 @app.route('/predict', methods=['GET', 'POST'])
-def upload():
+def predict():
     
     if request.method == 'POST':
         file = request.files['file']
@@ -294,13 +297,9 @@ def detection():
     
     
     windows = windows1 + windows2 +  windows3 + windows4
-    
-    # print("Total No of windows are ",len(windows))
+
     refinedWindows=DrawCars(image,windows, True)
     
-    # f,axes= plt.subplots(2,1, figsize=(30,15))
-    
-   
     heat = np.zeros_like(image[:,:,0]).astype(np.float)
 
     heat = add_heat(heat,refinedWindows)
@@ -317,7 +316,6 @@ def detection():
     labels = label(heatmap)
     print(" Number of Cars found - ",labels[1])
     draw_img = draw_labeled_bboxes(np.copy(image), labels)
-    
     imgplot = plt.imshow(draw_img)
     plt.show()
     return 'result'
